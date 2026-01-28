@@ -1,0 +1,9 @@
+[package]
+name = "gb-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+embedded-graphics = "0.8.1"
+# Critical for no_std: provides a heap allocator if you need one
+esp-alloc = "0.3.0"

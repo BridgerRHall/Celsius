@@ -1,0 +1,10 @@
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/embedded_can-cdbe80d42f8754d9.d: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/blocking.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/nb.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/id.rs
+
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/libembedded_can-cdbe80d42f8754d9.rlib: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/blocking.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/nb.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/id.rs
+
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/libembedded_can-cdbe80d42f8754d9.rmeta: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/blocking.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/nb.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/id.rs
+
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/lib.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/blocking.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/nb.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/embedded-can-0.4.1/src/id.rs:

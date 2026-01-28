@@ -1,0 +1,1 @@
+cargo run -p gb-sdl-desktop --target aarch64-apple-darwin

@@ -1,0 +1,10 @@
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/xtensa_lx-c63548aec2185f36.d: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/interrupt.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/timer.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/macros.rs
+
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/libxtensa_lx-c63548aec2185f36.rlib: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/interrupt.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/timer.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/macros.rs
+
+/Users/bridgerhall/Documents/rust/celsius/celsius/target/xtensa-esp32s3-none-elf/release/deps/libxtensa_lx-c63548aec2185f36.rmeta: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/lib.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/interrupt.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/timer.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/macros.rs
+
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/lib.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/interrupt.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/timer.rs:
+/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-0.10.0/src/macros.rs:

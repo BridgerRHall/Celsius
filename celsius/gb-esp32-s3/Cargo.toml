@@ -1,0 +1,14 @@
+[package]
+name = "gb-esp32-s3"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gb-core = { path = "../gb-core" }
+esp-hal = { version = "0.23.0", features = ["esp32s3"] }
+esp-backtrace = { version = "0.15.0", features = ["esp32s3", "panic-handler", "exception-handler", "println"] }
+esp-println = { version = "0.13.0", features = ["esp32s3", "uart"], default-features = false }
+static_cell = "2.1.0"
+embedded-graphics = "0.8.1"
+# Critical for no_std: provides a heap allocator if you need one
+esp-alloc = "0.3.0"

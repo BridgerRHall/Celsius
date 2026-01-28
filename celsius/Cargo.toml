@@ -1,0 +1,14 @@
+[workspace]
+members = [
+    "gb-core",
+    "gb-sdl-desktop",
+    "gb-esp32-s3",
+]
+resolver = "2"
+
+# Optimization profiles: Essential for the ESP32-S3 to stay fast
+[profile.release]
+opt-level = "s"       # Optimize for size
+lto = "fat"           # Link Time Optimization for speed
+codegen-units = 1     # Better optimization, slower compile
+panic = "abort"       # Smaller binary size, important for no_std

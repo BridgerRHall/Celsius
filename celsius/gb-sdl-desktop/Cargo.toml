@@ -1,0 +1,8 @@
+[package]
+name = "gb-sdl-desktop"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gb-core = { path = "../gb-core" }
+sdl2 = { version = "0.36", features = ["bundled", "static-link"] } # For window and input on Mac
