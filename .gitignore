@@ -1,0 +1,13 @@
+# Rust
+target/
+
+# Cargo.lock (optional: keep if library, commit if binary)
+Cargo.lock
+
+# ESP / embedded junk
+*.elf
+*.bin
+*.map
+
+# macOS
+.DS_Store

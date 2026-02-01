@@ -1,8 +1,0 @@
-/Users/bridgerhall/Documents/rust/celsius/celsius/target/release/build/xtensa-lx-rt-035c6e7a40db7ded/build_script_build-035c6e7a40db7ded.d: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/build.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/xtensa.in.x /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/interrupt_level_masks.rs.jinja /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/exception-esp32.x.jinja
-
-/Users/bridgerhall/Documents/rust/celsius/celsius/target/release/build/xtensa-lx-rt-035c6e7a40db7ded/build_script_build-035c6e7a40db7ded: /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/build.rs /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/xtensa.in.x /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/interrupt_level_masks.rs.jinja /Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/exception-esp32.x.jinja
-
-/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/build.rs:
-/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/xtensa.in.x:
-/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/interrupt_level_masks.rs.jinja:
-/Users/bridgerhall/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/xtensa-lx-rt-0.18.0/exception-esp32.x.jinja:
