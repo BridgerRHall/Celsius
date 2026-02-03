@@ -52,18 +52,34 @@ public impl Bus(){
             return self.boot_rom[address as usize];
         }
 
-        match address {//beware: self.cartrige and self.cpu need to be objects!
+        match address {
+            //beware: self.cartrige and self.cpu need to be objects!
+            //also may need to refactor to just cpu.read or ppu.read etc...
+            //infact it does because i am already doing offset which
+            //would be the purpose of further encapulsation/separation of
+            //concerns if we can do it in the cpu to enchanes soc
+            //yes put these addresses in the cpu make it care
+            //THE ABOVE WOULD BE TRUE IF BUS WAS NOT GLOBAL TRANSLATOR
+            //ALONG WITH THIS COMPONENTES SHOULD KNOW ABOUT ANYTHING BESIDES
+            //THEMSELVES THIS IS THE BUSES JOB
+            //WE ALSO WANT TO HAVE A SINGLE SOURCE OF TRUTH FOR MEMORY MAP
+            //AND MEMORY MAPPING IN THE BUS
             0x0000..=0x3FFF => return self.cartridge.read_rom_bank_00(address),
-            0x4000..=0x7FFF => return self.catridge.read_rom_bank_01(address,
-            //ppu
-            //romextram
+            0x4000..=0x7FFF => return self.catridge.read_rom_bank_01(address - 0X4000),
+            0x8000..=0x9FFF => return self.ppu.read_vram(address - 0x8000),
+            0xA000..=0xBFFF => return self.catridge.read_switchbank(address - 0xA000),
             0xC000..=0xCFFF => return self.cpu.read_work_ram_01(address - 0xC000),
-
-        if address <= 0x7FFF && address >= 0x0000 { 
-            //may need lock or other logic
-            //implmenet reading from other registers
-            return self.catridge.read(address);
-        }
+            0xD000..=0xDFFF => return self.cpu.read_work_ram_02(address - 0xD000),
+            //mirrors function of work ram 0 and 1 (may need to change)
+            0xE000..=0xEFFF => return self.cpu.read_work_ram_01(address - 0x2000),
+            0xF000..=0xFDFF => return self.cpu.read_work_ram_02(address - 0x2000),
+            0xFE00..=0xFE9F => return self.ppu.read_oam(address - 0xFE00),
+            0xFEA0..=0xFEFF => return, //error prohibted 
+            0xFF00..=0xFF7F => return //self.io.read_io(address - 0xFF00),
+            0xFF80..=0xFFFE => return self.cpu.read_high_ram(address - 0xFF80),
+            0xFFFF => return, //io enable registers
+            _ => //default,
+        }     
     }
 
     #[inline(always)]
