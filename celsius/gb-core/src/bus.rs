@@ -52,9 +52,18 @@ public impl Bus(){
             return self.boot_rom[address as usize];
         }
 
-        //may need lock or other logic
-        //implmenet reading from other registers
-        return self.catridge.read(address);
+        match address {//beware: self.cartrige and self.cpu need to be objects!
+            0x0000..=0x3FFF => return self.cartridge.read_rom_bank_00(address),
+            0x4000..=0x7FFF => return self.catridge.read_rom_bank_01(address,
+            //ppu
+            //romextram
+            0xC000..=0xCFFF => return self.cpu.read_work_ram_01(address - 0xC000),
+
+        if address <= 0x7FFF && address >= 0x0000 { 
+            //may need lock or other logic
+            //implmenet reading from other registers
+            return self.catridge.read(address);
+        }
     }
 
     #[inline(always)]
