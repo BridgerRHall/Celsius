@@ -27,7 +27,7 @@ struct Joypad {
 }
 
 impl Joypad {
-    fn new() -> Self{
+    pub fn new() -> Self{
        Self {
             registers: AtomicU8::new(255), //11111111
             state: AtomicU8::new(0xFF), //11111111 1 is not pushed
@@ -65,7 +65,7 @@ impl Joypad {
     }
 
     pub fn register_write(&self, value: u8) {
-        let selection = (value & 0b_0011_0000) & 0b_1100_0000; 
+        let selection = (value & 0b_0011_0000) | 0b_1100_0000; 
         self.registers.store(selection, Ordering::Relaxed);
         
     }

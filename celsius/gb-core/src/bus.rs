@@ -8,10 +8,10 @@ const NINTENDO_BOOT_ROM: [u8, 256] = [0xCE, 0xE, 0xD , 0x66, 0xCC, 0x0D, 0x00, 0
 struct Memory_Map {
     
     //memory map
-    rom_bank_00:  [AtomicU8; 0x4000], //0000 - 3FFF 16kb fixed bank -  from catridge
-    rom_bank_01:  [AtomicU8; 0x4000], //4000 - 7FFF 16kb switchable bank -  via mapper (if any)
+    // rom_bank_00:  [AtomicU8; 0x4000], //0000 - 3FFF 16kb fixed bank -  from catridge
+    // rom_bank_01:  [AtomicU8; 0x4000], //4000 - 7FFF 16kb switchable bank -  via mapper (if any)
     video_ram:    [AtomicU8; 0x2000],   //8000 - 9FFF 8kb Vram -  in CGB mode is switcahble bank
-    rom_ext_ram:  [AtomicU8; 0x2000], //A000 - BFFF 8kb external ram -  from catridege switchable bank if any
+    // rom_ext_ram:  [AtomicU8; 0x2000], //A000 - BFFF 8kb external ram -  from catridege switchable bank if any
     work_ram_00:  [AtomicU8; 0x1000], //C000 - CFFF 4kb work ram
     work_ram_01:  [AtomicU8; 0x1000], //D000 - DFFF 4kb work ram - incb mode switchable bank 1-7
     //echo_ram:     [AtomicU8; 0x1E00],  E000 - FDFF mirror of C000-DDFF (use prohibited)
@@ -27,7 +27,8 @@ struct Bus {
     memory_map: MemoryMap,
     cpu_lock: bool,
     ppu_lock: bool, //FF40
-    boot_disabled: bool, //FF50
+                    //
+    boot_disabled: bool //FF50
     boot_rom: &'static[u8; 256],
 }
 
@@ -38,10 +39,13 @@ public impl Bus(){
             memory_map: MemoryMap::new(),
             cpu_lock: false,
             ppu_lock: false,
+            eram_lock: false,
             boot_disabled: false,
             boot_rom: &NINTENDO_BOOT_ROM,
             // would be hardware accurate but adds unneccesary overhead because bool is faster
             // io_registers.store(Ordering::Relaxed, 0x004F) = 0x00,
+            intr_e: false,
+            intr_f: false,
         }
 
     }
@@ -64,19 +68,19 @@ public impl Bus(){
             //THEMSELVES THIS IS THE BUSES JOB
             //WE ALSO WANT TO HAVE A SINGLE SOURCE OF TRUTH FOR MEMORY MAP
             //AND MEMORY MAPPING IN THE BUS
-            0x0000..=0x3FFF => return self.cartridge.read_rom_bank_00(address),
-            0x4000..=0x7FFF => return self.catridge.read_rom_bank_01(address - 0X4000),
-            0x8000..=0x9FFF => return self.ppu.read_vram(address - 0x8000),
-            0xA000..=0xBFFF => return self.catridge.read_switchbank(address - 0xA000),
-            0xC000..=0xCFFF => return self.cpu.read_work_ram_01(address - 0xC000),
-            0xD000..=0xDFFF => return self.cpu.read_work_ram_02(address - 0xD000),
+            0x0000..=0x3FFF => return self.cartridge.read_rom_bank_00(address as usize),
+            0x4000..=0x7FFF => return self.catridge.read_rom_bank_01((address - 0X4000) as usize),
+            0x8000..=0x9FFF => return self.ppu.read_vram((address - 0x8000) as usize),
+            0xA000..=0xBFFF => return self.catridge.read_rom_ext_ram((address  - 0xA000) as usize),
+            0xC000..=0xCFFF => return self.cpu.read_work_ram_01((address - 0xC000) as usize),
+            0xD000..=0xDFFF => return self.cpu.read_work_ram_02((address - 0xD000) as usize),
             //mirrors function of work ram 0 and 1 (may need to change)
-            0xE000..=0xEFFF => return self.cpu.read_work_ram_01(address - 0x2000),
-            0xF000..=0xFDFF => return self.cpu.read_work_ram_02(address - 0x2000),
-            0xFE00..=0xFE9F => return self.ppu.read_oam(address - 0xFE00),
+            0xE000..=0xEFFF => return self.cpu.read_work_ram_01((address - 0x2000) as usize),
+            0xF000..=0xFDFF => return self.cpu.read_work_ram_02((address - 0x2000) as usize),
+            0xFE00..=0xFE9F => return self.ppu.read_oam((address - 0xFE00) as usize),
             0xFEA0..=0xFEFF => return, //error prohibted 
             0xFF00..=0xFF7F => return //self.io.read_io(address - 0xFF00),
-            0xFF80..=0xFFFE => return self.cpu.read_high_ram(address - 0xFF80),
+            0xFF80..=0xFFFE => return self.cpu.read_high_ram((address - 0xFF80) as usize),
             0xFFFF => return, //io enable registers
             _ => //default,
         }     
