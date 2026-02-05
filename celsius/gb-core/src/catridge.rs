@@ -1,5 +1,4 @@
-//FINISH IMPLMEMNTING MBC1 AND MBC3 FEATURES
-
+//Need to implement save to file in gb-sdl and gb-esp
 
 
 //mutliple typesof mbc's
@@ -12,6 +11,7 @@ pub struct Catridge {
     rom_ext_indx:  usize,
     eram_lock:    bool,
     mbc_type:     MbcType,
+    rtc_registers: [u8; 5],
     }
 
 impl Catridge {
@@ -43,6 +43,14 @@ impl Catridge {
         }
     }
 
+    fn latch_clock(&mut self) {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+        self.rtc_registers[0] = (now % 60) as u8;
+        self.rtc_registers[1] = ((now /60 ) % 60) as u8;
+        self.rtc_registers[2] = ((now / 3600) % 24) as u8;
+    }
+
     pub fn read_rom_bank_00(&self, address: usize) -> u8 { //converted from u16 in bus
         return self.rom_file[address];
     }
@@ -52,15 +60,20 @@ impl Catridge {
         return self.rom_file.get(actual_address).copied().unwrap_or(0xFF)
     }
 
-    pub fn read_rom_ext_ram(&self, address: usize, eram_lock: bool) -> u8 { //converted from u16 in bus
+    pub fn read_rom_ext_ram(&self, address: usize) -> u8 { //converted from u16 in bus
         if !self.eram_lock && !self.rom_ext_ram.isempty() {
-            let actual_address = (self.rom_ext_indx * 0x2000) + address;
-            return self.rom_ext_ram.get(actual_address).copied().unwrap_or(0xFF);
+            
+            if self.rom_ext_indx <= 0x03 {
+                let actual_address = (self.rom_ext_indx * 0x2000) + address;
+                return self.rom_ext_ram.get(actual_address).copied().unwrap_or(0xFF);
+            } else if self.rom_ext_indx >= 0x08 && self.rom_ext_indx <= 0x0C {
+                return self.rtc_registers[self.rom_ext_indx -  0x08]
             }
         else {
             return 0xFF
-        }
-    }
+            }
+            }
+}
 
     pub fn write(&mut self, address: u16, value: u8){
         match address {
@@ -76,8 +89,21 @@ impl Catridge {
             },
             //ram bank select need to update for mbc3 rtc
             0x4000..=0x5FFF => {
+                if self.mbc_type == Mbc_type::MBC_3 {
+                    if value <= 0x03 || (value <= 0x0C && value >= 0x08) {
+                        self.rom_ext_indx = value as usize;
+                    }
+                } else {
                 self.rom_ext_indx = (value & 0x03) as usize;
-            }
+                }
+            },
+            0x6000..=0x7FFF => {
+                if self.mbc_type == Mbc_type::MBC_3 {
+                    if value == 0x01 {
+                        self.latch_clock();
+                    }
+                }
+            },
             //writing to external ram
             0xA000..=0xBFFF => {
                 if !self.eram_lock && !self.rom_ext_ram.isempty() {
@@ -87,8 +113,8 @@ impl Catridge {
                         *slot = value;
                     }
                 }
-            }
-            _ => {}
+            },
+            _ => {},
 
         }
     }
