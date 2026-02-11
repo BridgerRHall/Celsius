@@ -30,6 +30,9 @@ struct Bus {
                     //
     boot_disabled: bool //FF50
     boot_rom: &'static[u8; 256],
+    
+    catridge: Catridge,
+
 }
 
 
@@ -46,6 +49,10 @@ public impl Bus(){
             // io_registers.store(Ordering::Relaxed, 0x004F) = 0x00,
             intr_e: false,
             intr_f: false,
+
+            catridge: Catridge::new(),
+            cpu: Cpu::new(),
+            joypad: joypad::new(),
         }
 
     }

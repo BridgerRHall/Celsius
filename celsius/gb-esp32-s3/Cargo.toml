@@ -12,3 +12,5 @@ static_cell = "2.1.0"
 embedded-graphics = "0.8.1"
 # Critical for no_std: provides a heap allocator if you need one
 esp-alloc = "0.3.0"
+
+#esp-idf-hal for dual core
