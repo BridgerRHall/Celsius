@@ -146,10 +146,10 @@ impl Cpu {
 
                 //do op
                 match group {
-                    0 => val = self.cb_shift_rotate(val, cb_bit),
-                    1 => self.cb_bit_test(val, cb_bit), //just changes flag
-                    2 => val &= !(1 << bit_index),
-                    3 => val |= 1 << bit_index,
+                    0 => value = self.cb_shift_rotate(value , cb_bit),
+                    1 => self.cb_bit_test(value , cb_bit), //just changes flag
+                    2 => value  &= !(1 << bit_index),
+                    3 => value |= 1 << bit_index,
                     _ => unreachable!(),
 
                 }
@@ -161,51 +161,85 @@ impl Cpu {
                 if cb_reg == 6 { 16 } else { 8 };
             }
             _ => 4,
-            //8bit loads
-            //16bit loads
-            //8bit alu
-            //16bit arithmetic
-            //misc
-            //rotates & shifts
-            //bit opcodes
-            //jumps
-            //calls
-            //restarts
-            //returns
-
-
-
-
-
-            
-
         }
     }
 
-    fn get_bc(&mut self) -> u16 {
-        let bc = ((self.b as u16) << 8) | (self.c as u16);
+    fn get_bc(&self) -> u16 {
+        ((self.b as u16) << 8) | (self.c as u16)
     }
-    fn get_de(&mut self) -> u16 {
-        let de = ((self.d as u16) << 8) | (self.e as u16);
+    fn get_de(&self) -> u16 {
+        ((self.d as u16) << 8) | (self.e as u16)
     }
-    fn get_hl(&mut self) -> u16 {
-        let hl = ((self.h as u16) << 8) | (self.l as u16);
+    fn get_hl(&self) -> u16 {
+        ((self.h as u16) << 8) | (self.l as u16)
     }
 
-    fn set_bc(&mut self, val: u16){
-        self.b = (val >> 8) as u8;
-        self.c = val as u8;
+    fn set_bc(&mut self, value: u16){
+        self.b = (value >> 8) as u8;
+        self.c = value as u8;
     }
-    fn set_de(&mut self, val: u16){
-        self.d = (val >> 8) as u8;
-        self.e = val as u8;
+    fn set_de(&mut self, value: u16){
+        self.d = (value >> 8) as u8;
+        self.e = value as u8;
     }
-    fn set_hl(&mut self, val: u16){
-        self.h = (val >> 8) as u8;
-        self.l = val as u8;
+    fn set_hl(&mut self, value: u16){
+        self.h = (value >> 8) as u8;
+        self.l = value as u8;
     }
     
-    fn get_register_val(&self, bus: &mut Bus, id: u8) -> u8 {
+    fn cb_bit_test(&mut self, value: u8, bit: u8){
+                let is_set = (value & (1 << bit)) != 0;
+
+                //flags
+                let z = if !is_set { 0x80 } else { 0 };
+                let n = 0x00;
+                let h = 0x20;
+                let c = self.f & 0x10;
+
+                self.f = z | n | h | c;
+    }
+
+    fn cb_shift_rotate(&mut self, value: u8, bit: u8) -> u8 {
+        match bit {
+            0 => self.cb_rlc(value),
+            1 => self.cb_rrc(value),
+            2 => self.cb_rl(value),
+            3 => self.cb_rr(value),
+            4 => self.cb_sla(value),
+            5 => self.cb_sra(value),
+            6 => self.cb_swap(value),
+            7 => self.cb_srl(value),
+            _ => unreachable!(),
+        }
+    }
+
+    fn cb_rlc(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_rrc(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_rl(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_rr(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_sla(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_sra(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_swap(&mut self, value) -> u8 {
+        result
+    }
+    fn cb_srl(&mut self, value) -> u8 {
+        result
+    }
+
+
+    fn get_register_val(&mut self, bus: &mut Bus, id: u8) -> u8 {
         match id {
             0 => self.b,
             1 => self.c,
@@ -219,7 +253,7 @@ impl Cpu {
         }
     }
 
-    fn set_register_val(&self, bus: &mut Bus, id: u8, value: u8) {
+    fn set_register_val(&mut self, bus: &mut Bus, id: u8, value: u8) {
         match id {
             0 => self.b = value,
             1 => self.c = value,
