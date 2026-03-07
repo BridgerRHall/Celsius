@@ -97,6 +97,20 @@ impl Cpu {
 
                 if reg_id == 6 { 12 } else { 4 }
             }
+            0x06 | 0x0E | 0x16 | 0x1E | 0x26 | 0x2E => {
+                let value = bus.read(self.pc);
+
+                match opcode {
+                    0x06 => self.b = value,
+                    0x0E => self.c = value,
+                    0x16 => self.d = value,
+                    0x1E => self.e = value,
+                    0x26 => self.h = value,
+                    0x2E => self.l = value,
+                    _ => unreachable!(),
+                }
+                8
+            }
             0x10 => {
                 let unused_byte = bus.read(self.pc);
                 self.pc+=1;
@@ -138,6 +152,12 @@ impl Cpu {
                 self.set_hl(((high as u16) << 8) | low as u16);
                 12
             }
+            0x22 => { //ldi hl
+                let hl = self.get_hl();
+                bus.write(hl, self.a);
+                self.set_hl(hl.wrapping_add(1));
+                8
+            }
             0x28 => { //jr z== 1 if 0
                 let offset = bus.read(self.pc) as i8;
                 self.pc += 1;
@@ -150,6 +170,12 @@ impl Cpu {
                 } else {
                     8
                 }
+            }
+            0x2A => { //ldi hl
+                let hl = self.get_hl();
+                self.a = bus.read(hl);
+                self.set_hl(hl.wrapping_add(1));
+                8
             }
             0x30 => { //jr c == 0 if no carry
                 let offset = bus.read(self.pc) as i8;
@@ -172,6 +198,12 @@ impl Cpu {
                 self.sp = (((high as u16) << 8) | low as u16);
                 12
             }
+            0x32 => { //ldi hl
+                let hl = self.get_hl();
+                bus.write(hl, self.a);
+                self.set_hl(hl.wrapping_sub(1));
+                8
+            }
             0x38 => { //jr c == 1 if carry
                 let offset = bus.read(self.pc) as i8;
                 self.pc +=1;
@@ -184,6 +216,12 @@ impl Cpu {
                 } else {
                     8
                 }
+            }
+            0x3A => { //ldi hl
+                let hl = self.get_hl();
+                self.a = bus.read(hl);
+                self.set_hl(hl.wrapping_sub(1));
+                8
             }
             0x40..=0x7F => {
                 if opcode == 0x76 {
@@ -351,7 +389,12 @@ impl Cpu {
                 if cb_reg == 6 { 16 } else { 8 }
             }
             0xCD => { // call nn
-                let target_address = self.read_u16(bus);
+                let low = bus.read(self.pc);
+                self.pc += 1;
+                let  high = bus.read(self.pc);
+                self.pc += 1;
+
+                let target_address = (((high as u16) << 8) | low as u16);
 
                 self.sp = self.sp.wrapping_sub(1);
                 bus.write(self.sp, (self.pc >> 8) as u8);
@@ -706,7 +749,7 @@ impl Cpu {
         }
     }
 
-    fn inc_8(&mut self, bus: &mut Bus, value u8) -> u8 {
+    fn inc_8(&mut self, value: u8) -> u8 {
         let result = value.wrapping_add(1);
 
         let z = if result == 0 { 0x80 } else { 0 };
@@ -718,7 +761,7 @@ impl Cpu {
         result
     }
 
-    fn dec_8(&mut self, bus: &mut Bus, value u8) -> u8 {
+    fn dec_8(&mut self, value: u8) -> u8 {
         let result = value.wrapping_sub(1);
 
         let z = if result == 0 { 0x80 } else { 0 };
@@ -729,5 +772,12 @@ impl Cpu {
         self.f = z | n | h | c;
         result
     }
-
+    
+    fn read_u16(&mut self, bus: &mut Bus) -> {
+        let low = bus.read(self.pc) as u16
+        self.pc += 1;
+        let high = bus.read(self.pc) as u16;
+        self.pc += 1;
+        (high << 8) | low;
+    }
 }
