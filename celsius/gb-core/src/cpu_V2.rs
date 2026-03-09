@@ -1,33 +1,3 @@
-struct Cu {
-
-}
-
-impl Cu {
-    pub new() ->Self{
-
-    }
-}
-struct Rf {
-
-}
-
-impl Rf {
-    pub new() ->Self{
-
-    }
-}
-struct Idu {
-
-}
-
-impl Idu {
-    pub new() ->Self{
-
-    }
-}
-
-
-
 struct Cpu {
 
 //RF--------------------------------------
@@ -74,12 +44,18 @@ impl Cpu {
                 4 //NOP
             } 
             0x01 => { //LD BC, d16
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-                self.set_bc(((high as u16) << 8) | low as u16);
+                self.set_bc(self.read_u16(bus));
                 12
+            }
+            0x03 | 0x13 | 0x23 | 0x33 => {
+                match opcode {
+                    0x03 => self.set_bc(self.get_bc().wrapping_add(1)), //inc bc
+                    0x13 => self.set_de(self.get_de().wrapping_add(1)), //inc de
+                    0x23 => self.set_hl(self.get_hl().wrapping_add(1)),
+                    0x33 => self.sp = self.sp.wrapping_add(1),
+                    _ => unreachable!(),
+                }
+                8
             }
             0x04 | 0x0C | 0x14 | 0x1C | 0x24 | 0x2C | 0x34 | 0x3C => {
                 let reg_id = opcode >> 3;
@@ -111,6 +87,37 @@ impl Cpu {
                 }
                 8
             }
+            0x09 | 0x19 | 0x29 | 0x39 => {
+                let hl = self.get_hl();
+                let value = match opcode {
+                    0x09 => self.get_bc(),
+                    0x19 => self.get_de(),
+                    0x29 => hl,
+                    0x39 => self.sp,
+                    _ => unreachable!(),
+                }
+                let result = hl.wrapping_add(value);
+
+                let n = 0x00;
+                let h = if (hl & 0x0FFF) + (value & 0x0FFF) > 0x0FFF { 0x20 } else { 0 };
+                let c = if (hl as u32) + (value as u32) > 0xFFFF { 0x10 } else { 0 }; //bitwise math not if statements to optimize branch prediction?
+
+                self.f = (self.f & 0x80) | n | h | c;
+
+                self.set_hl(result);
+                8
+
+            }
+            0x0B | 0x1B | 0x2B | 0x3B => {
+                match opcode {
+                    0x0B => self.set_bc(self.get_bc().wrapping_sub(1)), //sub bc
+                    0x1B => self.set_de(self.get_de().wrapping_sub(1)),
+                    0x2B => self.set_hl(self.get_hl().wrapping_sub(1)),
+                    0x3B => self.sp = self.sp.wrapping_sub(1),
+                    _ => unreachable!(),
+                }
+                8
+            }
             0x10 => {
                 let unused_byte = bus.read(self.pc);
                 self.pc+=1;
@@ -118,11 +125,7 @@ impl Cpu {
                 4
             }
             0x11 => { //LD de, d16
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-                self.set_de(((high as u16) << 8) | low as u16);
+                self.set_de(self.read_u16(bus));
                 12
             }
             0x18 => { //jr e
@@ -145,11 +148,7 @@ impl Cpu {
                 }
             }
             0x21 => { //LD hl, d16
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-                self.set_hl(((high as u16) << 8) | low as u16);
+                self.set_hl(self.read_u16(bus));
                 12
             }
             0x22 => { //ldi hl
@@ -191,11 +190,7 @@ impl Cpu {
                 }
             }
             0x31 => { //LD sp, d16
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-                self.sp = (((high as u16) << 8) | low as u16);
+                self.sp = (self.read_u16(bus));
                 12
             }
             0x32 => { //ldi hl
@@ -287,6 +282,29 @@ impl Cpu {
                 self.pc +=1;
                 8 //2byte instruction
             }
+            0xC0 | 0xC8 | 0xD0 | 0xD8 => { // cond ret nz z nc c
+                let zero_flag = (self.f >> 7) & 1;
+                let carry_flag = (self.f >> 4) & 1;
+            
+                let condition = match opcode {
+                    0xC0 => zero_flag == 0,
+                    0xC8 => zero_flag != 0,
+                    0xD0 => carry_flag == 0,
+                    0xD8 => carry_flag != 0,
+                    _ => unreachable!(),
+                };
+
+                if condition {
+                    let low = bus.read(self.sp) as u16;
+                    self.sp = self.sp.wrapping_add(1);
+                    let high = bus.read(self.sp) as u16;
+                    self.sp = self.sp.wrapping_add(1);
+                    self.pc = (high << 8) | low;
+                    20
+                } else {
+                    8
+                }
+            }
             0xC1 | 0xD1 | 0xE1 | 0xF1 => { //pop
                 let low = bus.read(self.sp);
                 self.sp += 1;
@@ -308,15 +326,11 @@ impl Cpu {
                 12
             }
             0xC2 => {
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
+                let address = self.read_u16(bus);
 
                 let zero_flag = (self.f >> 7) & 1;
 
                 if (zero_flag == 0){
-                    let address = ((high as u16) << 8) | (low as u16);
                     self.pc = address;
                     16
                 } else {
@@ -324,20 +338,42 @@ impl Cpu {
                 }
             }
             0xC3 => {
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-                let address = ((high as u16) << 8) | (low as u16);
+                let address = self.read_u16(bus);
                 self.pc = address;
                 16
+            }
+            0xC4 | 0xC4 | 0xD4 | 0xD4 => { // cond call nz z nc c
+                let target_address = self.read_u16(bus); //reads the two bytes
+
+                let zero_flag = (self.f >> 7) & 1;
+                let carry_flag = (self.f >> 4) & 1;
+            
+                let condition = match opcode {
+                    0xC4 => zero_flag == 0,
+                    0xCC => zero_flag != 0,
+                    0xD4 => carry_flag == 0,
+                    0xDc => carry_flag != 0,
+                    _ => unreachable!(),
+                };
+
+                if condition {
+                    self.sp = self.sp.wrapping_sub(1);
+                    bus.write(self.sp, (self.pc >> 8) as u8);
+                    self.sp = self.sp.wrapping_sub(1);
+                    bus.write(self.sp, (self.pc & 0xFF) as u8);
+
+                    self.pc = target_address;
+                    24
+                } else {
+                    12
+                }
             }
             0xC5 | 0xD5 | 0xE5 | 0xF5 => { //push
                 let value = match opcode {
                     0xC5 => self.get_bc(),
                     0xD5 => self.get_de(),
                     0xE5 => self.get_hl(),
-                    0xF5 => ((self.a as u16) << 8) | (self.f as u16);
+                    0xF5 => ((self.a as u16) << 8) | (self.f as u16),
                     _ => unreachable!(),
                 };
                 self.sp -= 1;
@@ -347,14 +383,9 @@ impl Cpu {
                 16
             }
             0xCA => {
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-
+                let address = self.read_u16(bus);
                 let zero_flag = (self.f >> 7) & 1;
                 if (zero_flag != 0){
-                    let address = ((high as u16) << 8) | (low as u16);
                     self.pc = address;
                     16
                 } else {
@@ -389,12 +420,7 @@ impl Cpu {
                 if cb_reg == 6 { 16 } else { 8 }
             }
             0xCD => { // call nn
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
-
-                let target_address = (((high as u16) << 8) | low as u16);
+                let target_address = self.read_u16(bus);
 
                 self.sp = self.sp.wrapping_sub(1);
                 bus.write(self.sp, (self.pc >> 8) as u8);
@@ -403,6 +429,16 @@ impl Cpu {
 
                 self.pc = target_address;
                 24
+            }
+            0xC7 | 0xCF | 0xD7 | 0xDF | 0xE7 | 0xEF | 0xF7 | 0xFF => {
+                //RST 00h 08h 10h 18h 20h 28h 30h 38h
+                self.sp = self.sp.wrapping_sub(1);
+                bus.write(self.sp, (self.pc >> 8) as u8);
+                self.sp = self.sp.wrapping_sub(1);
+                bus.write(self.sp, (self.pc & 0xFF) as u8);
+
+                self.pc = (opcode & 0x38) as u16;
+                16
             }
             0xC9 => { //ret unconditional
                 let low = bus.read(self.sp) as u16;
@@ -414,31 +450,33 @@ impl Cpu {
                 16
             }
             0xD2 => {
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
+                let address = read_u16(bus);
 
                 let carry_flag = (self.f >> 4) & 1;
 
                 if (carry_flag == 0){
-                    let address = ((high as u16) << 8) | (low as u16);
                     self.pc = address;
                     16
                 } else {
                     12
                 }
             }
+            0xD9 => {
+                self.ime = true;
+                let low = bus.read(self.sp) as u16;
+                self.sp = self.sp.wrapping_add(1);
+                let high = bus.read(self.sp) as u16;
+                self.sp = self.sp.wrapping_add(1);
+            
+                self.pc = (high << 8) | low;
+                16
+            }
             0xDA => {
-                let low = bus.read(self.pc);
-                self.pc += 1;
-                let  high = bus.read(self.pc);
-                self.pc += 1;
+                let address = read_u16(bus);
 
                 let carry_flag = (self.f >> 4) & 1;
 
                 if (carry_flag != 0){
-                    let address = ((high as u16) << 8) | (low as u16);
                     self.pc = address;
                     16
                 } else {
@@ -451,43 +489,40 @@ impl Cpu {
                 bus.write(0xFF00 | n, self.a);
                 12
             }
-            0xF0 => {
-                let n = bus.read(self.pc) as u16;
-                self.pc += 1;
-                self.a = bus.read(0xFF00 | n);
-                12
-            }
             0xEA => {
-                let low = bus.read(self.sp);
-                self.sp += 1;
-                let  high = bus.read(self.sp);
-                self.sp += 1;
-
-                let address = (((high as u16) << 8) | low as u16);
+                let address = self.read_u16(bus);
                 bus.write(address, self.a);
-                16
-            }
-            0xFA => {
-                let low = bus.read(self.sp);
-                self.sp += 1;
-                let  high = bus.read(self.sp);
-                self.sp += 1;
-
-                let address = (((high as u16) << 8) | low as u16);
-                self.a = bus.read(address);
                 16
             }
             0xE2 => {
                 bus.write(0xFF00 | (self.c as u16), self.a);
                 8
             }
+            0xE9 => {
+                self.pc = self.get_hl();
+                4
+            }
+            0xF0 => {
+                let n = bus.read(self.pc) as u16;
+                self.pc += 1;
+                self.a = bus.read(0xFF00 | n);
+                12
+            }
             0xF2 => {
                 self.a = bus.read(0xFF00 | (self.c as u16));
                 8
             }
-            0xE9 => {
-                self.pc = self.get_hl();
+            0xF3 | 0xFB => {
+                match opcode {
+                    0xF3 => self.ime = false,
+                    0xFB => self.ime = true,
+                }
                 4
+            }
+            0xFA => {
+                let address = self.read_u16(bus);
+                self.a = bus.read(address);
+                16
             }
             _ => 4,
         }
@@ -773,11 +808,11 @@ impl Cpu {
         result
     }
     
-    fn read_u16(&mut self, bus: &mut Bus) -> {
-        let low = bus.read(self.pc) as u16
-        self.pc += 1;
+    fn read_u16(&mut self, bus: &mut Bus) -> u16 {
+        let low = bus.read(self.pc) as u16;
+        self.pc.wrapping_add(1);
         let high = bus.read(self.pc) as u16;
-        self.pc += 1;
-        (high << 8) | low;
+        self.pc.wrapping_add(1);
+        (high << 8) | low
     }
 }
