@@ -2,36 +2,42 @@
 #![no_main]
 
 use esp_backtrace as _;
-use esp_hal::main; // This provides the #[main] attribute
+use esp_hal::{
+    cpu_control::{CpuControl, Stack},
+    main,
+    prelude::*,
+};
 use esp_println::println;
 
-// #[main] // Replaces #[entry]
-// fn main() -> ! {
-//     // New way to initialize for v0.23+
-//     let _peripherals = esp_hal::init(esp_hal::Config::default());
-    
-//     println!("Celsius Emulator: ESP32-S3 Target Online");
-
-//     loop {
-//         // Emulator logic will go here
-//     }
-// }
+use core::sync::atomic{AtomicBool, Ordering};
 
 
-let frame_ready: bool //core 1 needs to wait if display hasn't finished drawing last frame
+static FRAME_READY: AtomicBool = AtomicBool::new(false); //core 1 needs to wait if display hasn't finished drawing last frame
+
+#[main] // Replaces #[entry]
+fn main() -> ! {
+    // New way to initialize for v0.23+
+    let peripherals = esp_hal::init(esp_hal::Config::default());
+    let mut cpu_control = CpuControl::new(peripherals.CPU_CTRL);
+    println!("Celsius Emulator: ESP32-S3 Target Online");
 
 
-//need to instantiate all things i.e. catridge bus cpu
+    let mut core1_stack = [0u8; 8192];
+    let _ = cpu_control.start_app_core(unsafe { &mut core1_stack }, move || {
+        println!("core 1: starting loop");
+        loop {
+            FRAME_READY.store(true, Ordering::Relaxed);
+        }
+    });
 
-//core 1: cpu/ppu
-loop {
-    //read instructions
-    cpu.tick(&mut bus); //cpu owns bus.  //need to keep track of cycles and pass to ppu
-    //check video ram update scanlines.  //so it can keep up with cpu !!!!must be in sync!!!
-    ppu.tick(&mut bus);
+    println!("core 0: starting system");
+    loop {
+        unsafe {
+            if FRAME_READY.load(Ordering::Relaxed) {
+                FRAME_READY.store(false, Ordering::Relaxed);
+            }
+        }
+    }
+
 }
 
-//core 0: everything else
-loop {
-    //do fancy stuff here
-}

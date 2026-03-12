@@ -1,3 +1,5 @@
+use esp_hal::ram;
+
 struct Cpu {
 
 //RF--------------------------------------
@@ -30,6 +32,7 @@ impl Cpu {
 
     }
 
+    #[ram]
     fn step(&mut self, bus: &mut Bus) -> u32 {
 
         if self.stopped {
@@ -651,30 +654,34 @@ impl Cpu {
             _ => 4,
         }
     }
-
+    #[inline(always)]
     fn get_bc(&self) -> u16 {
         ((self.b as u16) << 8) | (self.c as u16)
     }
+    #[inline(always)]
     fn get_de(&self) -> u16 {
         ((self.d as u16) << 8) | (self.e as u16)
     }
+    #[inline(always)]
     fn get_hl(&self) -> u16 {
         ((self.h as u16) << 8) | (self.l as u16)
     }
-
+    #[inline(always)]
     fn set_bc(&mut self, value: u16){
         self.b = (value >> 8) as u8;
         self.c = value as u8;
     }
+    #[inline(always)]
     fn set_de(&mut self, value: u16){
         self.d = (value >> 8) as u8;
         self.e = value as u8;
     }
+    #[inline(always)]
     fn set_hl(&mut self, value: u16){
         self.h = (value >> 8) as u8;
         self.l = value as u8;
     }
-    
+    #[inline(always)]
     fn cb_bit_test(&mut self, value: u8, bit: u8){
                 let is_set = (value & (1 << bit)) != 0;
 
@@ -686,7 +693,7 @@ impl Cpu {
 
                 self.f = z | n | h | c;
     }
-
+    #[inline(always)]
     fn cb_shift_rotate(&mut self, value: u8, bit: u8) -> u8 {
         match bit {
             0 => self.cb_rlc(value),
@@ -700,19 +707,21 @@ impl Cpu {
             _ => unreachable!(),
         }
     }
-
+    #[inline(always)]
     fn cb_rlc(&mut self, value: u8) -> u8 {
         let bit7 = (value >> 7) & 1;
         let result = (value << 1) | bit7;
         self.set_flags(result, 0, 0, bit7);
         result
     }
+    #[inline(always)]
     fn cb_rrc(&mut self, value: u8) -> u8 {
         let bit0 = (value & 1);
         let result = (value >> 1) | (bit0 << 7);
         self.set_flags(result, 0, 0, bit0);
         result
     }
+    #[inline(always)]
     fn cb_rl(&mut self, value: u8) -> u8 {
         let old_carry = (self.f >> 4) & 1;
         let bit7 = (value >> 7) & 1;
@@ -720,6 +729,7 @@ impl Cpu {
         self.set_flags(result, 0, 0, bit7);
         result
     }
+    #[inline(always)]
     fn cb_rr(&mut self, value: u8) -> u8 {
         let old_carry = (self.f >> 4) & 1;
         let bit0 = value & 1;
@@ -727,29 +737,34 @@ impl Cpu {
         self.set_flags(result, 0, 0, bit0);
         result
     }
+    #[inline(always)]
     fn cb_sla(&mut self, value: u8) -> u8 {
         let bit7 = value >> 7;
         let result = value << 1;
         self.set_flags(result, 0, 0, bit7);
         result
     }
+    #[inline(always)]
     fn cb_sra(&mut self, value: u8) -> u8 {
         let bit0 = value & 1;
         let result = (value >> 1) | (value & 0x80);
         self.set_flags(result, 0, 0, bit0);
         result
     }
-    fn cb_swap(&mut self, value: u8) -> u8 {
+   #[inline(always)]
+   fn cb_swap(&mut self, value: u8) -> u8 {
         let result = (value >> 4) | (value << 4);
         self.f = if result == 0 { 0x80 } else { 0 };
         result
     }
+    #[inline(always)]
     fn cb_srl(&mut self, value: u8) -> u8 {
         let bit0 = value & 1;
         let result = value >> 1;
         self.set_flags(result, 0, 0, bit0);
         result
     }
+    #[inline(always)]
     fn set_flags(&mut self, res: u8, n: u8, h: u8, c: u8){
         let z_bit = if res == 0 { 0x80 } else { 0 };
         let n_bit = if n != 0 { 0x40 } else { 0 };
@@ -759,6 +774,7 @@ impl Cpu {
         self.f = z_bit | n_bit | h_bit | c_bit;
     }
 
+    #[inline(always)]
     fn get_register_val(&mut self, bus: &mut Bus, id: u8) -> u8 {
         match id {
             0 => self.b,
@@ -773,6 +789,7 @@ impl Cpu {
         }
     }
 
+    #[inline(always)]
     fn set_register_val(&mut self, bus: &mut Bus, id: u8, value: u8) {
         match id {
             0 => self.b = value,
@@ -787,6 +804,7 @@ impl Cpu {
         }
     }
 
+    #[inline(always)]
     fn alu(&mut self, value: u8, arithmetic: u8) {
         match arithmetic {
             0x00 => { //add
@@ -907,7 +925,7 @@ impl Cpu {
             },
         }
     }
-
+    #[inline(always)]
     fn inc_8(&mut self, value: u8) -> u8 {
         let result = value.wrapping_add(1);
 
@@ -919,7 +937,7 @@ impl Cpu {
         self.f = z | n | h | c;
         result
     }
-
+    #[inline(always)]
     fn dec_8(&mut self, value: u8) -> u8 {
         let result = value.wrapping_sub(1);
 
@@ -931,7 +949,7 @@ impl Cpu {
         self.f = z | n | h | c;
         result
     }
-    
+    #[inline(always)]
     fn read_u16(&mut self, bus: &mut Bus) -> u16 {
         let low = bus.read(self.pc) as u16;
         self.pc = self.pc.wrapping_add(1);
@@ -939,7 +957,7 @@ impl Cpu {
         self.pc = self.pc.wrapping_add(1);
         (high << 8) | low
     }
-
+    #[inline(always)]
     fn execute_interrupt(&mut self, bus: &mut Bus, pending: u8) {
         self.ime = false;
 
