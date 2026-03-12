@@ -36,6 +36,28 @@ impl Cpu {
             return 4;
         }
 
+        if self.halted {
+            let interrupt_flag = bus.read(0xFF0F);
+            let interrupt_enable = bus.read(0xFFFF);
+
+            if (interrupt_flag & interrupt_enable & 0x1F) != 0 {
+                self.halted = false;
+            } else {
+                return 4;
+            }
+        }
+
+        if self.ime {
+            let interrupt_flag = bus.read(0xFF0F);
+            let interrupt_enable = bus.read(0xFFFF);
+            let pending = interrupt_flag & interrupt_enable & 0x1F;
+
+            if pending != 0 {
+                self.execute_interrupt(bus, pending);
+                return 20;
+            }
+        }
+
         let opcode: u8 = bus.read(self.pc);
         self.pc += 1;
 
@@ -87,6 +109,36 @@ impl Cpu {
                 }
                 8
             }
+            0x07 | 0x0F | 0x17 | 0x1F => {
+                let old_address = self.a;
+                let old_carry = (self.f >> 4) & 1;
+
+                match opcode {
+                    0x07 => {
+                        let bit7 = (old_address >> 7) & 1;
+                        self.a = (old_address << 1) | bit7;
+                        self.f = if bit7 != 0 { 0x10 } else { 0 };
+
+                    }
+                    0x0F => {
+                        let bit0 = (old_address & 1);
+                        self.a = (old_address >> 1) | (bit0 << 7);
+                        self.f = if bit0 == 0 { 0x10 } else { 0 };
+                    }
+                    0x17 => {
+                        let bit7 = (old_address >> 7) & 1;
+                        self.a = (old_address << 1) | old_carry;
+                        self.f =  if bit7 != 0 { 0x10 } else { 0 };
+                    }
+                    0x1F => {
+                        let bit0 = (old_address & 1);
+                        self.a = (old_address >> 1) | (old_carry << 7);
+                        self.f = if bit0 != 0 { 0x10 } else { 0 };
+
+                    }
+                    _ => unreachable!(),
+                }
+            }
             0x09 | 0x19 | 0x29 | 0x39 => {
                 let hl = self.get_hl();
                 let value = match opcode {
@@ -95,7 +147,7 @@ impl Cpu {
                     0x29 => hl,
                     0x39 => self.sp,
                     _ => unreachable!(),
-                }
+                };
                 let result = hl.wrapping_add(value);
 
                 let n = 0x00;
@@ -157,6 +209,35 @@ impl Cpu {
                 self.set_hl(hl.wrapping_add(1));
                 8
             }
+            0x27 => {
+                let mut a = self.a as u16;
+                let n_flag = (self.f & 0x40) != 0;
+                let h_flag = (self.f & 0x20) != 0;
+                let c_flag = (self.f & 0x10) != 0;
+
+                if !n_flag {
+                    if h_flag || a > 0x9F {
+                        a += 0x06;
+                    }
+                    if c_flag  || (a & 0x9F) > 0x99 {
+                        a += 0x60;
+                        self.f |= 0x10; //set carry
+
+                    }
+                } else {
+                    if h_flag {
+                        a = a.wrapping_sub(0x06);
+                    }
+                    if c_flag {
+                        a = a.wrapping_sub(0x60);
+                    }
+                }
+
+                self.a = a as u8;
+                let z = if self.a == 0 { 0x80 } else { 0 };
+                self.f = (self.f & 0x50) | z;
+                4
+            }
             0x28 => { //jr z== 1 if 0
                 let offset = bus.read(self.pc) as i8;
                 self.pc += 1;
@@ -175,6 +256,11 @@ impl Cpu {
                 self.a = bus.read(hl);
                 self.set_hl(hl.wrapping_add(1));
                 8
+            }
+            0x2F => {
+                self.a = !self.a;
+                self.f |= 0x60;
+                4
             }
             0x30 => { //jr c == 0 if no carry
                 let offset = bus.read(self.pc) as i8;
@@ -199,6 +285,10 @@ impl Cpu {
                 self.set_hl(hl.wrapping_sub(1));
                 8
             }
+            0x37 => {
+                self.f = (self.f & 0x80) | 0x10;
+                4
+            }
             0x38 => { //jr c == 1 if carry
                 let offset = bus.read(self.pc) as i8;
                 self.pc +=1;
@@ -217,6 +307,11 @@ impl Cpu {
                 self.a = bus.read(hl);
                 self.set_hl(hl.wrapping_sub(1));
                 8
+            }
+            0x3F => {
+                let c = if (self.f & 0x10) != 0 { 0 } else { 0x10 };
+                self.f = (self.f & 0x80) | c;
+                4
             }
             0x40..=0x7F => {
                 if opcode == 0x76 {
@@ -352,7 +447,7 @@ impl Cpu {
                     0xC4 => zero_flag == 0,
                     0xCC => zero_flag != 0,
                     0xD4 => carry_flag == 0,
-                    0xDc => carry_flag != 0,
+                    0xDC => carry_flag != 0,
                     _ => unreachable!(),
                 };
 
@@ -489,6 +584,20 @@ impl Cpu {
                 bus.write(0xFF00 | n, self.a);
                 12
             }
+            0xE8 => {
+                let offset = bus.read(self.pc) as i8 as i16 as u16;
+                self.pc += 1;
+
+                let sp = self.sp;
+                let result = sp.wrapping_add(offset);
+
+                let h = if (sp & 0x0F) + (offset & 0x0F) > 0x0F { 0x20 } else { 0 };
+                let c = if (sp & 0xFF) + (offset & 0xFF) > 0xFF { 0x10 } else { 0 };
+
+                self.f = h | c;
+                self.sp = result;
+                16
+            }
             0xEA => {
                 let address = self.read_u16(bus);
                 bus.write(address, self.a);
@@ -518,6 +627,21 @@ impl Cpu {
                     0xFB => self.ime = true,
                 }
                 4
+            }
+            0xF8 => {
+                let offset = bus.read(self.pc) as i8 as i16 as u16;
+                self.pc += 1;
+
+                let sp = self.sp;
+                let result = sp.wrapping_add(offset);
+
+                let h = if (sp & 0X0F) + (offset & 0x0F) > 0x0F { 0x20 } else { 0 };
+                let c = if (sp & 0xFF) + (offset & 0xFF) > 0xFF { 0x10 } else { 0 };
+
+                self.f = h | c;
+                self.set_hl(result);
+                12
+
             }
             0xFA => {
                 let address = self.read_u16(bus);
@@ -577,50 +701,50 @@ impl Cpu {
         }
     }
 
-    fn cb_rlc(&mut self, value) -> u8 {
+    fn cb_rlc(&mut self, value: u8) -> u8 {
         let bit7 = (value >> 7) & 1;
         let result = (value << 1) | bit7;
         self.set_flags(result, 0, 0, bit7);
         result
     }
-    fn cb_rrc(&mut self, value) -> u8 {
+    fn cb_rrc(&mut self, value: u8) -> u8 {
         let bit0 = (value & 1);
         let result = (value >> 1) | (bit0 << 7);
         self.set_flags(result, 0, 0, bit0);
         result
     }
-    fn cb_rl(&mut self, value) -> u8 {
+    fn cb_rl(&mut self, value: u8) -> u8 {
         let old_carry = (self.f >> 4) & 1;
         let bit7 = (value >> 7) & 1;
         let result = (value << 1) | old_carry;
         self.set_flags(result, 0, 0, bit7);
         result
     }
-    fn cb_rr(&mut self, value) -> u8 {
+    fn cb_rr(&mut self, value: u8) -> u8 {
         let old_carry = (self.f >> 4) & 1;
         let bit0 = value & 1;
         let result = (value >> 1) | (old_carry << 7);
         self.set_flags(result, 0, 0, bit0);
         result
     }
-    fn cb_sla(&mut self, value) -> u8 {
+    fn cb_sla(&mut self, value: u8) -> u8 {
         let bit7 = value >> 7;
         let result = value << 1;
         self.set_flags(result, 0, 0, bit7);
         result
     }
-    fn cb_sra(&mut self, value) -> u8 {
+    fn cb_sra(&mut self, value: u8) -> u8 {
         let bit0 = value & 1;
         let result = (value >> 1) | (value & 0x80);
         self.set_flags(result, 0, 0, bit0);
         result
     }
-    fn cb_swap(&mut self, value) -> u8 {
+    fn cb_swap(&mut self, value: u8) -> u8 {
         let result = (value >> 4) | (value << 4);
         self.f = if result == 0 { 0x80 } else { 0 };
         result
     }
-    fn cb_srl(&mut self, value) -> u8 {
+    fn cb_srl(&mut self, value: u8) -> u8 {
         let bit0 = value & 1;
         let result = value >> 1;
         self.set_flags(result, 0, 0, bit0);
@@ -810,9 +934,35 @@ impl Cpu {
     
     fn read_u16(&mut self, bus: &mut Bus) -> u16 {
         let low = bus.read(self.pc) as u16;
-        self.pc.wrapping_add(1);
+        self.pc = self.pc.wrapping_add(1);
         let high = bus.read(self.pc) as u16;
-        self.pc.wrapping_add(1);
+        self.pc = self.pc.wrapping_add(1);
         (high << 8) | low
+    }
+
+    fn execute_interrupt(&mut self, bus: &mut Bus, pending: u8) {
+        self.ime = false;
+
+        self.sp = self.sp.wrapping_sub(1);
+        bus.write(self.sp, (self.pc >> 8) as u8);
+        self.sp = self.sp.wrapping_sub(1);
+        bus.write(self.sp, (self.pc & 0xFF) as u8);
+
+        if (pending & 0x01) != 0 {
+            bus.write(0xFF0F, pending & !0x01);
+            self.pc = 0x0040;
+        } else if (pending & 0x02) != 0 {
+            bus.write(0xFF0F, pending & !0x02);
+            self.pc = 0x0048;
+        } else if (pending & 0x04) != 0 {
+            bus.write(0xFF0F, pending & !0x04);
+            self.pc = 0x0050;
+        } else if (pending & 0x08) != 0 {
+            bus.write(0xFF0F, pending & !0x08);
+            self.pc = 0x0058;
+        } else if (pending & 0x10) != 0 {
+            bus.write(0xFF0F, pending & !0x10);
+            self.pc = 0x0060;
+        }
     }
 }
